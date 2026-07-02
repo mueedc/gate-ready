@@ -1,0 +1,18 @@
+{
+  "name": "Gate Ready — Door-to-Gate Airport Trip Planner",
+  "short_name": "Gate Ready",
+  "description": "Know exactly when to leave for the airport — door to gate.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

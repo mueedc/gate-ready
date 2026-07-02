@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gate Ready — Door-to-Gate Airport Trip Planner</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Gate Ready" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css?v=2" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <header class="app-header">
+        <h1>✈️ Gate Ready</h1>
+        <p class="tagline">Know exactly when to leave — door to gate.</p>
+      </header>
+
+      <!-- PHASE 1: one-time setup -->
+      <section class="card" id="setup-view">
+        <h2>Set Up Your Trip</h2>
+
+        <div class="field">
+          <span class="field-label">From</span>
+          <div class="input-wrap">
+            <span class="in-icon">🏠</span>
+            <input type="text" id="origin-input" placeholder="Home address" />
+            <button id="locate-btn" class="inset-btn" title="Use my location">📍</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Airport</span>
+          <div class="input-wrap">
+            <span class="in-icon">🛫</span>
+            <select id="airport-select"></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Flight</span>
+          <div class="input-wrap">
+            <span class="in-icon">🎫</span>
+            <select id="airline-select" class="airline"></select>
+            <span class="in-divider"></span>
+            <input type="text" id="flight-input" placeholder="1234" inputmode="numeric" class="flight" />
+          </div>
+        </div>
+
+        <div id="setup-error" class="error-msg hidden"></div>
+        <button id="lookup-btn" class="primary">Plan My Trip →</button>
+      </section>
+
+      <!-- PHASE 2: comparison dashboard -->
+      <div id="plan-view" class="plan-view hidden">
+
+        <div class="trip-summary">
+          <div class="summary-text" id="summary-text"></div>
+          <button id="edit-trip-btn" class="ghost-btn">Edit</button>
+        </div>
+
+        <div id="leave-banner" class="leave-banner"></div>
+
+        <section class="card">
+          <h2>🚗 Getting There</h2>
+          <div id="mode-reco" class="mode-reco"></div>
+          <div id="mode-options" class="mode-options"></div>
+        </section>
+
+        <section class="card">
+          <h2>🛂 Security &amp; Timing</h2>
+          <span class="field-label">Security line — tap to choose</span>
+          <div id="tsa-waits" class="tsa-waits"></div>
+          <span class="field-label">Time at the gate before boarding</span>
+          <div class="row">
+            <input type="range" id="buffer-slider" min="0" max="150" step="5" value="30" />
+            <span id="buffer-label" class="buffer-label">30 min</span>
+          </div>
+          <p class="hint" id="buffer-hint">A comfortable cushion.</p>
+        </section>
+
+        <section class="card">
+          <h2>🍸 Lounges</h2>
+          <div id="cred-chips" class="chips"></div>
+          <div id="lounge-list" class="lounge-list"></div>
+        </section>
+
+        <section class="card">
+          <h2>🗓 Door-to-Gate Timeline</h2>
+          <ol id="timeline" class="timeline"></ol>
+          <button id="start-trip-btn" class="primary">🚦 Start Trip — Track Live</button>
+          <div id="live-status" class="live-status hidden"></div>
+        </section>
+      </div>
+    </aside>
+
+    <main id="map-container">
+      <div id="map"></div>
+      <div id="map-eta" class="map-eta hidden"></div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="js/app.js?v=2"></script>
+</body>
+</html>
