@@ -18,22 +18,28 @@ function hashCode(str) {
 }
 
 /**
+ * `departAt` (optional Date) is the user-confirmed departure time — a flight
+ * number can fly the same route several times a day, so this pins the leg.
+ * The mock uses it directly; the proxy path forwards it so the server can
+ * pick the closest-matching leg.
+ *
  * @returns {Promise<{airline, flightNumber, origin, destination, gate, terminal,
  *                    departure: Date, boarding: Date}>}
  */
-export async function lookupFlight(airlineCode, flightNumber, airportCode) {
+export async function lookupFlight(airlineCode, flightNumber, airportCode, departAt = null) {
   if (CONFIG.FLIGHT_PROXY_URL) {
     try {
-      return await proxyLookup(airlineCode, flightNumber, airportCode);
+      return await proxyLookup(airlineCode, flightNumber, airportCode, departAt);
     } catch (err) {
       console.warn("Flight proxy failed, falling back to mock:", err);
     }
   }
-  return mockLookup(airlineCode, flightNumber, airportCode);
+  return mockLookup(airlineCode, flightNumber, airportCode, departAt);
 }
 
-async function proxyLookup(airlineCode, flightNumber, airportCode) {
-  const url = `${CONFIG.FLIGHT_PROXY_URL}?ident=${airlineCode}${flightNumber}`;
+async function proxyLookup(airlineCode, flightNumber, airportCode, departAt) {
+  const timeParam = departAt ? `&time=${encodeURIComponent(departAt.toISOString())}` : "";
+  const url = `${CONFIG.FLIGHT_PROXY_URL}?ident=${airlineCode}${flightNumber}${timeParam}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Flight lookup failed (${res.status})`);
   const f = await res.json();
@@ -52,17 +58,23 @@ async function proxyLookup(airlineCode, flightNumber, airportCode) {
 
 // Deterministic: the same airline + flight number always returns the same
 // departure time and gate, so the app feels consistent while testing.
-async function mockLookup(airlineCode, flightNumber, airportCode) {
+async function mockLookup(airlineCode, flightNumber, airportCode, departAt) {
   // Simulate network latency so the UI's loading state is exercised.
   await new Promise((r) => setTimeout(r, 500));
 
   const h = hashCode(`${airlineCode}${flightNumber}${airportCode}`);
 
-  // Departure sometime 2.5–9 hours from now, rounded to :00/:05, so the
-  // planning math always has a realistic future flight to work with.
-  const minutesOut = 150 + (h % 390);
-  const departure = new Date(Date.now() + minutesOut * 60_000);
-  departure.setMinutes(Math.round(departure.getMinutes() / 5) * 5, 0, 0);
+  // User-confirmed time wins; otherwise generate a departure 2.5–9 hours
+  // from now, rounded to :00/:05, so the planning math always has a
+  // realistic future flight to work with.
+  let departure;
+  if (departAt) {
+    departure = new Date(departAt);
+  } else {
+    const minutesOut = 150 + (h % 390);
+    departure = new Date(Date.now() + minutesOut * 60_000);
+    departure.setMinutes(Math.round(departure.getMinutes() / 5) * 5, 0, 0);
+  }
 
   const boarding = new Date(departure.getTime() - 40 * 60_000);
 

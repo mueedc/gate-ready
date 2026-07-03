@@ -12,7 +12,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="css/style.css?v=2" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
 </head>
 <body>
   <div id="app">
@@ -50,6 +50,14 @@
             <select id="airline-select" class="airline"></select>
             <span class="in-divider"></span>
             <input type="text" id="flight-input" placeholder="1234" inputmode="numeric" class="flight" />
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Departs at — confirms the exact flight</span>
+          <div class="input-wrap">
+            <span class="in-icon">🕐</span>
+            <input type="time" id="depart-input" />
           </div>
         </div>
 
@@ -107,6 +115,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" src="js/app.js?v=2"></script>
+  <script type="module" src="js/app.js?v=3"></script>
 </body>
 </html>

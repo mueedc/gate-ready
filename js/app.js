@@ -120,8 +120,19 @@ async function onLookup() {
     }
     state.airport = getAirport(el("airport-select").value);
 
+    // Optional departure time: pins the exact flight (a number can fly the
+    // same route several times a day). Assumes today; rolls to tomorrow if
+    // that time has already passed.
+    let departAt = null;
+    if (el("depart-input").value) {
+      const [h, m] = el("depart-input").value.split(":").map(Number);
+      departAt = new Date();
+      departAt.setHours(h, m, 0, 0);
+      if (departAt.getTime() <= Date.now()) departAt.setDate(departAt.getDate() + 1);
+    }
+
     const [flight, driving] = await Promise.all([
-      lookupFlight(el("airline-select").value, flightNum, state.airport.code),
+      lookupFlight(el("airline-select").value, flightNum, state.airport.code, departAt),
       drivingRoute(state.origin, state.airport),
     ]);
     state.flight = flight;

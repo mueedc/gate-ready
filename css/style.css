@@ -89,7 +89,7 @@ label {
   margin-bottom: 10px;
 }
 
-input[type="text"], select {
+input[type="text"], input[type="time"], select {
   width: 100%;
   margin-top: 4px;
   padding: 9px 10px;
@@ -99,6 +99,7 @@ input[type="text"], select {
   color: var(--text);
   font-size: 0.95rem;
 }
+input[type="time"] { color-scheme: dark; }
 
 input:focus, select:focus { outline: 2px solid var(--accent-dark); border-color: transparent; }
 
@@ -434,7 +435,7 @@ input[type="range"] { flex: 1; accent-color: var(--accent); margin-top: 4px; }
     border-bottom: 1px solid var(--border);
   }
   /* 16px inputs stop iOS Safari from zooming in on focus. */
-  input[type="text"], select { font-size: 16px; }
+  input[type="text"], input[type="time"], select { font-size: 16px; }
   .app-header h1 { font-size: 1.25rem; }
   .app-header .tagline { display: none; }
   .leave-banner .leave-time { font-size: 1.6rem; }

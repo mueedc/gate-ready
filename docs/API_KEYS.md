@@ -50,8 +50,16 @@ export default {
     if (!r.ok) return json({ error: `aeroapi ${r.status}` }, 502);
 
     const data = await r.json();
-    // First upcoming (not yet departed) leg.
-    const f = (data.flights ?? []).find((f) => !f.actual_off) ?? data.flights?.[0];
+    // Prefer the leg closest to the user-confirmed time (?time=ISO, sent by
+    // the app when the traveler enters a departure time); otherwise the
+    // first upcoming (not yet departed) leg.
+    const wanted = Date.parse(new URL(request.url).searchParams.get("time") ?? "");
+    const upcoming = (data.flights ?? []).filter((f) => !f.actual_off);
+    const f = Number.isFinite(wanted)
+      ? upcoming.sort((a, b) =>
+          Math.abs(Date.parse(a.scheduled_out) - wanted) -
+          Math.abs(Date.parse(b.scheduled_out) - wanted))[0]
+      : upcoming[0] ?? data.flights?.[0];
     if (!f) return json({ error: "flight not found" }, 404);
 
     return json({
