@@ -1,7 +1,15 @@
-// Flight lookup. Uses your flight proxy when CONFIG.FLIGHT_PROXY_URL is set
-// (a tiny server-side wrapper around FlightAware AeroAPI — see
-// docs/API_KEYS.md for a copy-paste Cloudflare Worker); otherwise a
-// deterministic mock so the app is fully usable without keys.
+// Flight lookup, in order of preference:
+//
+//  1. Your flight proxy (CONFIG.FLIGHT_PROXY_URL) — real schedules, gates,
+//     and the correct leg for the day. See docs/API_KEYS.md for the
+//     copy-paste Cloudflare Worker around FlightAware AeroAPI.
+//  2. adsbdb.com route database (free, no key) — the airline's registered
+//     route for that flight number. Crowd-sourced and sometimes stale or a
+//     different leg, so it is only trusted when its origin matches the
+//     airport you picked.
+//  3. Honest fallback — unknown fields show as "—"/"TBD" rather than
+//     fabricated values. Departure time comes from your "Departs at" input
+//     (or a deterministic placeholder so the planner still works).
 //
 // The proxy is expected to respond to GET {FLIGHT_PROXY_URL}?ident=AA100 with:
 //   { destination, gate, terminal, departureIso, boardingIso? }
@@ -9,7 +17,11 @@
 
 import { CONFIG } from "../config.js";
 
-const DESTINATIONS = ["LHR", "CDG", "MEX", "AUS", "PHX", "MSP", "SLC", "SAN", "RDU", "BNA", "HNL", "YYZ"];
+// IATA airline code → ICAO callsign prefix (what route databases index by).
+const ICAO_PREFIX = {
+  AA: "AAL", DL: "DAL", UA: "UAL", WN: "SWA",
+  B6: "JBU", AS: "ASA", NK: "NKS", F9: "FFT",
+};
 
 function hashCode(str) {
   let h = 0;
@@ -20,8 +32,6 @@ function hashCode(str) {
 /**
  * `departAt` (optional Date) is the user-confirmed departure time — a flight
  * number can fly the same route several times a day, so this pins the leg.
- * The mock uses it directly; the proxy path forwards it so the server can
- * pick the closest-matching leg.
  *
  * @returns {Promise<{airline, flightNumber, origin, destination, gate, terminal,
  *                    departure: Date, boarding: Date}>}
@@ -31,10 +41,10 @@ export async function lookupFlight(airlineCode, flightNumber, airportCode, depar
     try {
       return await proxyLookup(airlineCode, flightNumber, airportCode, departAt);
     } catch (err) {
-      console.warn("Flight proxy failed, falling back to mock:", err);
+      console.warn("Flight proxy failed, falling back:", err);
     }
   }
-  return mockLookup(airlineCode, flightNumber, airportCode, departAt);
+  return routeDbLookup(airlineCode, flightNumber, airportCode, departAt);
 }
 
 async function proxyLookup(airlineCode, flightNumber, airportCode, departAt) {
@@ -48,7 +58,7 @@ async function proxyLookup(airlineCode, flightNumber, airportCode, departAt) {
     airline: airlineCode,
     flightNumber: String(flightNumber),
     origin: airportCode,
-    destination: f.destination ?? "—",
+    destination: f.destination ?? null,
     gate: f.gate ?? "TBD",
     terminal: f.terminal ?? "TBD",
     departure,
@@ -56,36 +66,46 @@ async function proxyLookup(airlineCode, flightNumber, airportCode, departAt) {
   };
 }
 
-// Deterministic: the same airline + flight number always returns the same
-// departure time and gate, so the app feels consistent while testing.
-async function mockLookup(airlineCode, flightNumber, airportCode, departAt) {
-  // Simulate network latency so the UI's loading state is exercised.
-  await new Promise((r) => setTimeout(r, 500));
+// Registered route from adsbdb. Only trusted when its origin matches the
+// airport the traveler picked — route DBs lag when numbers are reassigned,
+// and a wrong destination is worse than none.
+async function fetchRoute(airlineCode, flightNumber, airportCode) {
+  const prefix = ICAO_PREFIX[airlineCode];
+  if (!prefix) return null;
+  try {
+    const res = await fetch(`https://api.adsbdb.com/v0/callsign/${prefix}${flightNumber}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const route = data?.response?.flightroute;
+    if (route?.origin?.iata_code === airportCode) return route.destination?.iata_code ?? null;
+  } catch {
+    /* offline or rate-limited — fall through */
+  }
+  return null;
+}
 
-  const h = hashCode(`${airlineCode}${flightNumber}${airportCode}`);
+async function routeDbLookup(airlineCode, flightNumber, airportCode, departAt) {
+  const destination = await fetchRoute(airlineCode, flightNumber, airportCode);
 
-  // User-confirmed time wins; otherwise generate a departure 2.5–9 hours
-  // from now, rounded to :00/:05, so the planning math always has a
-  // realistic future flight to work with.
+  // User-confirmed time wins; otherwise a deterministic placeholder 2.5–9
+  // hours out so the planner still has a future flight to work with.
   let departure;
   if (departAt) {
     departure = new Date(departAt);
   } else {
-    const minutesOut = 150 + (h % 390);
-    departure = new Date(Date.now() + minutesOut * 60_000);
+    const h = hashCode(`${airlineCode}${flightNumber}${airportCode}`);
+    departure = new Date(Date.now() + (150 + (h % 390)) * 60_000);
     departure.setMinutes(Math.round(departure.getMinutes() / 5) * 5, 0, 0);
   }
-
-  const boarding = new Date(departure.getTime() - 40 * 60_000);
 
   return {
     airline: airlineCode,
     flightNumber: String(flightNumber),
     origin: airportCode,
-    destination: DESTINATIONS[h % DESTINATIONS.length],
-    gate: `${"ABCD"[h % 4]}${(h % 38) + 1}`,
-    terminal: `${(h % 5) + 1}`,
+    destination, // null → shown as "—" until a real flight API is connected
+    gate: "TBD",
+    terminal: "TBD",
     departure,
-    boarding,
+    boarding: new Date(departure.getTime() - 40 * 60_000),
   };
 }

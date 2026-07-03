@@ -158,7 +158,7 @@ async function onLookup() {
 function renderSummary() {
   const f = state.flight;
   el("summary-text").innerHTML = `
-    <div class="summary-flight">${f.airline} ${f.flightNumber} · ${f.origin} → ${f.destination} ·
+    <div class="summary-flight">${f.airline} ${f.flightNumber} · ${f.origin} → ${f.destination ?? "—"} ·
       departs ${fmtTime(f.departure)} · gate ${f.gate}</div>
     <div class="summary-route">from ${state.origin.label.split(",").slice(0, 3).join(",")}</div>`;
 }
@@ -330,7 +330,7 @@ function buildPlan() {
     { time: securityDone, name: "Through security", detail: `${airport.walkToGateMin} min walk to gate ${flight.gate}` },
     { time: gateArrival, name: lounge ? "Lounge, then gate" : "At the gate", detail: gateDetail },
     { time: flight.boarding, name: "Boarding begins", detail: `Gate ${flight.gate}` },
-    { time: flight.departure, name: "Wheels up 🛫", detail: `${flight.airline} ${flight.flightNumber} to ${flight.destination}` },
+    { time: flight.departure, name: "Wheels up 🛫", detail: `${flight.airline} ${flight.flightNumber}${flight.destination ? " to " + flight.destination : ""}` },
   ];
 
   return { leave, curbArrival, travelMin, wait, steps };

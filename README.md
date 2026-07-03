@@ -49,7 +49,8 @@ python3 -m http.server 8123
 | Geocoding | OSM Nominatim | **Real** (free, no key) |
 | Driving routes & ETAs | OSRM demo server | **Real** (free, no key; no live traffic) |
 | Map tiles | CARTO / OpenStreetMap | **Real** |
-| Flight schedule/gate | `js/services/flights.js` | **Mock** (deterministic) |
+| Flight route (destination) | `js/services/flights.js` | **Real** via adsbdb.com (free; only trusted when its origin matches your airport) |
+| Flight times & gates | `js/services/flights.js` | **User-entered time / TBD** until a flight API is connected (docs/API_KEYS.md #2) |
 | TSA wait times | `js/services/tsa.js` | **Mock** (time-of-day rush model + jitter) |
 | Lounge directory | `js/services/lounges.js` | **Static** (representative lounges + seat counts) |
 | Lounge occupancy | `js/services/lounges.js` | **Modeled** — hourly departing pax (annual enplanements × departure-bank curve) × share of flyers with access (cabin mix, card penetration w/ regional multipliers, hub share for airline clubs) × visit rate × dwell time ÷ seats |
